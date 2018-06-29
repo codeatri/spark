@@ -3261,3 +3261,31 @@ case class ArrayDistinct(child: Expression)
 
   override def prettyName: String = "array_distinct"
 }
+
+/**
+  * Returns a map with transformed values MapEntries.
+  */
+@ExpressionDescription(
+  usage = "_FUNC_(map) - Returns an unordered array containing the values of the map.",
+  examples = """
+    Examples:
+      > SELECT _FUNC_(map(1, 'a', 2, 'b'));
+       ["a","b"]
+  """)
+case class TransformValues(child: Expression)
+  extends UnaryExpression with ExpectsInputTypes {
+
+  override def inputTypes: Seq[AbstractDataType] = Seq(MapType)
+
+  override def dataType: DataType = ArrayType(child.dataType.asInstanceOf[MapType].valueType)
+
+  override def nullSafeEval(map: Any): Any = {
+    map.asInstanceOf[MapData].valueArray()
+  }
+
+  override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    nullSafeCodeGen(ctx, ev, c => s"${ev.value} = ($c).valueArray();")
+  }
+
+  override def prettyName: String = "map_values"
+}
